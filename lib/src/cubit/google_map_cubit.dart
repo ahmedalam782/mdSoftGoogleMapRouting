@@ -55,6 +55,13 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
   }
 
   @override
+  void emit(GoogleMapState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+
+  @override
   Future<void> close() async {
     await _positionStream?.cancel();
     return super.close();

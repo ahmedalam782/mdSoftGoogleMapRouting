@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter_platform_interface/src/types/location.dart';
-import 'package:mdsoft_google_map_routing/google_map_routing.dart';
 import 'package:mdsoft_google_map_routing/google_map_routing_method_channel.dart';
 import 'package:mdsoft_google_map_routing/google_map_routing_platform_interface.dart';
 import 'package:mdsoft_google_map_routing/src/models/dirction_route_model/dirction_route_model.dart';
@@ -37,8 +36,7 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    MdSoftGoogleMapRouting googleMapRoutingPlugin =
-        const MdSoftGoogleMapRouting();
+
     MockGoogleMapRoutingPlatform fakePlatform = MockGoogleMapRoutingPlatform();
     GoogleMapRoutingPlatform.instance = fakePlatform;
 
