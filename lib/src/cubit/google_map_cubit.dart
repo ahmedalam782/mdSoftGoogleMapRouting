@@ -80,12 +80,17 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
             LatLng(locationData.latitude!, locationData.longitude!);
       }
       var myCameraPosition = CameraPosition(target: currentLocation, zoom: 17);
-      googleMapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          myCameraPosition,
-        ),
-      );
-
+      // Check if cubit is closed before animating camera
+      if (!isClosed) {
+        await googleMapController?.animateCamera(
+          CameraUpdate.newCameraPosition(
+            myCameraPosition,
+          ),
+        );
+      } else {
+        emit(GetLocationErrorState(errorMessage: 'Cubit is closed.'));
+        return;
+      }
       updateCarMarker(isUser: isUser);
 
       emit(GetLocationSuccessState());
