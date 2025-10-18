@@ -8,7 +8,6 @@ import 'package:mdsoft_google_map_routing/src/services/location_service.dart';
 import 'package:mdsoft_google_map_routing/src/services/toastification_widget.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mdsoft_google_map_routing/src/utils/constants.dart';
-import 'package:mdsoft_google_map_routing/src/utils/socket_service.dart';
 import 'package:toastification/toastification.dart';
 export 'src/cubit/google_map_cubit.dart';
 export 'src/repositories/google_map_repo_impl.dart';

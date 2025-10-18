@@ -58,7 +58,7 @@ class GoogleMapRepoImpl extends GoogleMapRepo {
       // Decode polyline
       final encoded =
           response.data['routes'][0]['overview_polyline']['points'] as String;
-      final rawPoints = PolylinePoints().decodePolyline(encoded);
+      final rawPoints = PolylinePoints.decodePolyline(encoded);
       final coordinates =
           rawPoints.map((pt) => LatLng(pt.latitude, pt.longitude)).toList();
 
