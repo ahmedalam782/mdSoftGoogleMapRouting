@@ -3,7 +3,9 @@
 // package as the core of your plugin.
 // ignore: avoid_web_libraries_in_flutter
 
+// ignore: depend_on_referenced_packages
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+// ignore: depend_on_referenced_packages
 import 'package:web/web.dart' as web;
 
 import 'google_map_routing_platform_interface.dart';

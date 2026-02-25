@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mdsoft_google_map_routing/google_map_routing.dart';
 
 class GoogleMapConfig {
   static String _apiKey = '';

@@ -215,9 +215,19 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
             locationData['longitude'] == null) {
           return;
         }
-        LatLng newLocation =
-            LatLng(locationData['latitude']!, locationData['longitude']!);
+        LatLng newLocation = LatLng(
+          double.parse(locationData['latitude'].toString()),
+          double.parse(locationData['longitude'].toString()),
+        );
         debugPrint('newLocation: $newLocation');
+
+        if (carLocation != null &&
+            (carLocation!.latitude != newLocation.latitude ||
+                carLocation!.longitude != newLocation.longitude)) {
+          final newBearing =
+              CamiraService.getBearing(carLocation!, newLocation);
+          oldBearing = CamiraService.smoothBearing(oldBearing, newBearing, .2);
+        }
 
         if (_hasEmittedDestinationReached) return;
         if (destination != null &&
@@ -261,7 +271,8 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
       {required String mapStyle, Color? primaryColor}) async {
     mapStyleString = await rootBundle.loadString(mapStyle);
     this.primaryColor = primaryColor ?? this.primaryColor;
-    googleMapController!.setMapStyle(mapStyleString);
+    // ignore: deprecated_member_use
+    googleMapController?.setMapStyle(mapStyleString);
     emit(GetMapStyleSuccessState());
   }
 
@@ -388,7 +399,7 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
         startCap: Cap.roundCap,
         jointType: JointType.round,
         points: completedRoute,
-        color: primaryColor.withOpacity(.32),
+        color: primaryColor.withValues(alpha: .32),
         patterns: [PatternItem.dash(15), PatternItem.gap(15)],
         polylineId: const PolylineId('completedRoute'),
       ),
@@ -476,13 +487,7 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
         markerId: const MarkerId('car'),
         position: isUser ? carLocation ?? const LatLng(0, 0) : currentLocation,
         icon: await AppImages.car.toBitmapDescriptor(devicePixelRatio: 2.5),
-        rotation: CamiraService.smoothBearing(
-          oldBearing,
-          carLocation != null
-              ? CamiraService.getBearing(currentLocation, carLocation!)
-              : 0,
-          0.1,
-        ),
+        rotation: oldBearing,
       ),
     );
 
@@ -490,19 +495,13 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
   }
 
   //? updateCarMarker
-  Future<void> updateCarMarker({isUser = false}) async {
+  Future<void> updateCarMarker({bool isUser = false}) async {
     markers.removeWhere((marker) => marker.markerId.value == 'car');
     markers.add(
       Marker(
         markerId: const MarkerId('car'),
         position: isUser ? carLocation ?? const LatLng(0, 0) : currentLocation,
-        rotation: CamiraService.smoothBearing(
-          oldBearing,
-          carLocation != null
-              ? CamiraService.getBearing(currentLocation, carLocation!)
-              : 0,
-          isUser ? .2 : 2,
-        ),
+        rotation: oldBearing,
         icon: await AppImages.car.toBitmapDescriptor(devicePixelRatio: 2.5),
       ),
     );

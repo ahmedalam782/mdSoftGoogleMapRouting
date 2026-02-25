@@ -11,7 +11,7 @@ environment:
 
 dependencies:
   dartz: ^0.10.1
-  dio: ^5.9.0
+  dio: ^5.9.1
   flutter:
     sdk: flutter
   flutter_background_service: ^5.1.0
@@ -19,15 +19,14 @@ dependencies:
   flutter_background_service_ios: ^5.0.3
   flutter_bloc: ^9.1.1
   flutter_polyline_points: ^3.1.0
-  google_maps_flutter: ^2.13.1
-  google_maps_flutter_web: ^0.5.14+2
+  google_maps_flutter: ^2.14.2
   location: ^8.0.1
   plugin_platform_interface: ^2.1.8
-  socket_io_client: ^3.1.2
+  socket_io_client: ^3.1.4
   toastification: ^3.0.3
 
 dev_dependencies:
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
 
