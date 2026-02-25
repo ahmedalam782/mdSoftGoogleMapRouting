@@ -82,11 +82,15 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
       var myCameraPosition = CameraPosition(target: currentLocation, zoom: 17);
       // Check if cubit is closed before animating camera
       if (!isClosed) {
-        await googleMapController?.animateCamera(
-          CameraUpdate.newCameraPosition(
-            myCameraPosition,
-          ),
-        );
+        try {
+          await googleMapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              myCameraPosition,
+            ),
+          );
+        } catch (e) {
+          debugPrint('Camera animation failed: $e');
+        }
       } else {
         emit(GetLocationErrorState(errorMessage: 'Cubit is closed.'));
         return;
@@ -165,17 +169,21 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
           updateRoute(newLocation);
           updateCarMarker();
 
-          googleMapController?.animateCamera(
-            CameraUpdate.newCameraPosition(
-              CameraPosition(
-                target: newLocation,
-                zoom:
-                    CamiraService.calculateZoom(speed: locationData.speed ?? 0),
-                bearing: bearing,
-                tilt: smoothtilt,
+          try {
+            googleMapController?.animateCamera(
+              CameraUpdate.newCameraPosition(
+                CameraPosition(
+                  target: newLocation,
+                  zoom: CamiraService.calculateZoom(
+                      speed: locationData.speed ?? 0),
+                  bearing: bearing,
+                  tilt: smoothtilt,
+                ),
               ),
-            ),
-          );
+            );
+          } catch (e) {
+            debugPrint('Camera animation failed: $e');
+          }
           lastUpdate = DateTime.now();
           FlutterBackgroundService().invoke(
             'updateLocation',
@@ -246,16 +254,20 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
         carLocation = newLocation;
         updateCarMarker(isUser: true);
 
-        googleMapController?.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: newLocation,
-              zoom: 17,
-              bearing: 0,
-              tilt: 0,
+        try {
+          googleMapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: newLocation,
+                zoom: 17,
+                bearing: 0,
+                tilt: 0,
+              ),
             ),
-          ),
-        );
+          );
+        } catch (e) {
+          debugPrint('Camera animation failed: $e');
+        }
         lastUpdate = DateTime.now();
         safeEmit(GetMyStreemLocationSuccessState());
       });
@@ -528,12 +540,16 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
       northeast: LatLng(northEastlat, northEastLng),
     );
 
-    googleMapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-        bounds,
-        40,
-      ),
-    );
+    try {
+      googleMapController?.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          bounds,
+          40,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Camera animation failed: $e');
+    }
     emit(GetBoundsSuccessState());
   }
 }
