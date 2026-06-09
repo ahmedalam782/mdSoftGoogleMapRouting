@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 
+ToastificationItem? _currentToast;
+
 void showToastificationWidget({
   required String message,
   required BuildContext context,
   ToastificationType notificationType = ToastificationType.error,
   int duration = 3,
 }) {
-  toastification.show(
+  if (_currentToast != null) {
+    toastification.dismiss(_currentToast!);
+  }
+  toastification.dismissAll(delayForAnimation: false);
+  _currentToast = toastification.show(
     context: context,
     title: Text(
       textAlign: TextAlign.center,
@@ -16,7 +22,7 @@ void showToastificationWidget({
     ),
     type: notificationType,
     style: ToastificationStyle.flat,
-    alignment: Alignment.bottomCenter,
+    alignment: Alignment.topCenter,
     direction: TextDirection.rtl,
     autoCloseDuration: Duration(seconds: duration),
   );
