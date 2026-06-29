@@ -27,6 +27,8 @@ class ServerFailure extends Failure {
         return ServerFailure('Request to ApiServer was canceld');
       case DioExceptionType.connectionError:
         return ServerFailure('No Internet Connection');
+      case DioExceptionType.transformTimeout:
+        return ServerFailure('Transform timeout with ApiServer');
       case DioExceptionType.unknown:
         ServerFailure('Unknown error: ${e.message}');
         if (e.error != null) {
