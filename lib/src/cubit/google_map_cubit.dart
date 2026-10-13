@@ -21,8 +21,8 @@ import 'package:mdsoft_google_map_routing/src/utils/extension.dart';
 import 'package:mdsoft_google_map_routing/src/services/line_service.dart';
 import 'package:mdsoft_google_map_routing/src/services/polyline_decoder.dart';
 
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
 import 'package:mdsoft_google_map_routing/src/utils/socket_service.dart';
 part 'google_map_state.dart';
 
@@ -45,7 +45,7 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
   late LatLng currentLocation;
   LatLng? carLocation;
   LatLng? destination; // Changed from late to nullable
-  StreamSubscription<LocationData>? _positionStream;
+  StreamSubscription<Position>? _positionStream;
 
   // Helper method to safely emit states
   void safeEmit(GoogleMapState state) {
@@ -75,9 +75,8 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
         currentLocation = LatLng(carPosition!.latitude, carPosition.longitude);
         carLocation = currentLocation;
       } else {
-        LocationData locationData = await locationService.getLocation();
-        currentLocation =
-            LatLng(locationData.latitude!, locationData.longitude!);
+        final position = await locationService.getLocation();
+        currentLocation = LatLng(position.latitude, position.longitude);
       }
       var myCameraPosition = CameraPosition(target: currentLocation, zoom: 17);
       // Check if cubit is closed before animating camera
@@ -127,24 +126,20 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
       _hasEmittedDestinationReached = false;
 
       _positionStream = await locationService.getLocationStream(
-        (locationData) {
-          if (locationData.latitude == null || locationData.longitude == null) {
-            return;
-          }
-
+        (position) {
           if (DateTime.now().difference(lastUpdate).inMilliseconds < 500) {
             return;
           }
-          LatLng newLocation =
-              LatLng(locationData.latitude!, locationData.longitude!);
+          LatLng newLocation = LatLng(position.latitude, position.longitude);
           debugPrint('newLocation: $newLocation');
 
-          final newBearing = locationData.heading ??
-              CamiraService.getBearing(currentLocation, newLocation);
+          final speed = position.speed < 0 ? 0.0 : position.speed;
+          final newBearing = speed > 0.5
+              ? position.heading
+              : CamiraService.getBearing(currentLocation, newLocation);
           final bearing =
               CamiraService.smoothBearing(oldBearing, newBearing, 0.2);
-          final tilt = CamiraService.getTilt(locationData.speed ?? 0.0)
-              .clamp(20.0, 45.0);
+          final tilt = CamiraService.getTilt(speed).clamp(20.0, 45.0);
           final double smoothtilt =
               CamiraService.smoothTilt(oldTilt, tilt, 0.2);
           if (_hasEmittedDestinationReached) return;
@@ -174,8 +169,7 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
               CameraUpdate.newCameraPosition(
                 CameraPosition(
                   target: newLocation,
-                  zoom: CamiraService.calculateZoom(
-                      speed: locationData.speed ?? 0),
+                  zoom: CamiraService.calculateZoom(speed: speed),
                   bearing: bearing,
                   tilt: smoothtilt,
                 ),
