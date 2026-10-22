@@ -21,7 +21,7 @@ import 'package:mdsoft_google_map_routing/src/utils/extension.dart';
 import 'package:mdsoft_google_map_routing/src/services/line_service.dart';
 import 'package:mdsoft_google_map_routing/src/services/polyline_decoder.dart';
 
-import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mdsoft_google_map_routing/src/utils/socket_service.dart';
 part 'google_map_state.dart';
@@ -45,7 +45,7 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
   late LatLng currentLocation;
   LatLng? carLocation;
   LatLng? destination; // Changed from late to nullable
-  StreamSubscription<Position>? _positionStream;
+  StreamSubscription<LocationData>? _positionStream;
 
   // Helper method to safely emit states
   void safeEmit(GoogleMapState state) {
@@ -133,9 +133,9 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
           LatLng newLocation = LatLng(position.latitude, position.longitude);
           debugPrint('newLocation: $newLocation');
 
-          final speed = position.speed < 0 ? 0.0 : position.speed;
+          final rawSpeed = position.speed ?? 0.0; final speed = rawSpeed < 0 ? 0.0 : rawSpeed;
           final newBearing = speed > 0.5
-              ? position.heading
+              ? (position.heading ?? 0.0)
               : CamiraService.getBearing(currentLocation, newLocation);
           final bearing =
               CamiraService.smoothBearing(oldBearing, newBearing, 0.2);
@@ -377,16 +377,16 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
     if (routeModel == null || routeModel!.coordinates.isEmpty || isClosed)
       return;
     final fullRoute = routeModel!.coordinates;
-    // 1. إيجاد أقرب قطعة
+    // 1. Ã˜Â¥Ã™Å Ã˜Â¬Ã˜Â§Ã˜Â¯ Ã˜Â£Ã™â€šÃ˜Â±Ã˜Â¨ Ã™â€šÃ˜Â·Ã˜Â¹Ã˜Â©
     final closestIndex =
         lineService.findClosestSegmentIndex(fullRoute, currentPosition);
-    // 2. حساب النقطة الأقرب على القطعة
+    // 2. Ã˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã˜Â§Ã™â€žÃ™â€ Ã™â€šÃ˜Â·Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â£Ã™â€šÃ˜Â±Ã˜Â¨ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€šÃ˜Â·Ã˜Â¹Ã˜Â©
     final closestPoint = lineService.getClosestPointOnSegment(
       currentPosition,
       fullRoute[closestIndex],
       fullRoute[closestIndex + 1],
     );
-    // 3. تقسيم المسار
+    // 3. Ã˜ÂªÃ™â€šÃ˜Â³Ã™Å Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â±
     final completedRoute = [
       ...fullRoute.sublist(0, closestIndex + 1),
       closestPoint,
@@ -395,9 +395,9 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
       closestPoint,
       ...fullRoute.sublist(closestIndex + 1),
     ];
-    // 4. تحديث الخطوط
+    // 4. Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â« Ã˜Â§Ã™â€žÃ˜Â®Ã˜Â·Ã™Ë†Ã˜Â·
     polyLines.clear();
-    // الخط المكتمل
+    // Ã˜Â§Ã™â€žÃ˜Â®Ã˜Â· Ã˜Â§Ã™â€žÃ™â€¦Ã™Æ’Ã˜ÂªÃ™â€¦Ã™â€ž
     polyLines.add(
       Polyline(
         width: 5,
@@ -411,7 +411,7 @@ class GoogleMapCubit extends Cubit<GoogleMapState> {
       ),
     );
 
-    // الخط المتبقي
+    // Ã˜Â§Ã™â€žÃ˜Â®Ã˜Â· Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜Â¨Ã™â€šÃ™Å 
     polyLines.add(
       Polyline(
         width: 5,

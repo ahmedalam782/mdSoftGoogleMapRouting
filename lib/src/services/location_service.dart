@@ -1,65 +1,30 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
 
 class LocationService {
-  StreamSubscription<Position>? _locationSubscription;
+  final Location _location = Location();
+  StreamSubscription<LocationData>? _locationSubscription;
 
-  LocationSettings _locationSettings({required bool highAccuracy}) {
-    final accuracy =
-        highAccuracy ? LocationAccuracy.high : LocationAccuracy.low;
-    final distanceFilter = highAccuracy ? 2 : 100000;
-
-    if (kIsWeb) {
-      return LocationSettings(
-        accuracy: accuracy,
-        distanceFilter: distanceFilter,
-      );
-    }
-
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return AndroidSettings(
-          accuracy: accuracy,
-          distanceFilter: distanceFilter,
-          intervalDuration: highAccuracy
-              ? const Duration(seconds: 1)
-              : const Duration(hours: 1),
-          foregroundNotificationConfig: highAccuracy
-              ? const ForegroundNotificationConfig(
-                  notificationTitle: 'Route tracking',
-                  notificationText: 'Tracking your route in the background',
-                  enableWakeLock: true,
-                  setOngoing: true,
-                )
-              : null,
-        );
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-        return AppleSettings(
-          accuracy: accuracy,
-          activityType: ActivityType.automotiveNavigation,
-          distanceFilter: distanceFilter,
-          pauseLocationUpdatesAutomatically: !highAccuracy,
-          showBackgroundLocationIndicator: highAccuracy,
-          allowBackgroundLocationUpdates: highAccuracy,
-        );
-      default:
-        return LocationSettings(
-          accuracy: accuracy,
-          distanceFilter: distanceFilter,
-        );
-    }
+  Future<void> _configureSettings({required bool highAccuracy}) async {
+    await _location.changeSettings(
+      accuracy: highAccuracy ? LocationAccuracy.high : LocationAccuracy.low,
+      distanceFilter: highAccuracy ? 2 : 100000,
+      interval: highAccuracy ? 1000 : 3600000,
+    );
   }
 
   Future<void> checkAndRequestLocationService() async {
     try {
-      final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool isServiceEnabled = await _location.serviceEnabled();
       if (!isServiceEnabled) {
-        throw LocationServiceException();
+        isServiceEnabled = await _location.requestService();
+        if (!isServiceEnabled) {
+          throw LocationServiceException();
+        }
       }
     } on LocationServiceException {
       rethrow;
@@ -72,19 +37,15 @@ class LocationService {
   Future<void> checkAndRequestLocationPermission() async {
     try {
       if (kIsWeb) return;
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.deniedForever) {
+      var permission = await _location.hasPermission();
+      if (permission == PermissionStatus.deniedForever) {
         throw LocationPermissionException();
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.unableToDetermine) {
-        permission = await Geolocator.requestPermission();
+      if (permission == PermissionStatus.denied) {
+        permission = await _location.requestPermission();
       }
-      if (permission == LocationPermission.whileInUse) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission != LocationPermission.always &&
-          permission != LocationPermission.whileInUse) {
+      if (permission != PermissionStatus.granted &&
+          permission != PermissionStatus.grantedLimited) {
         throw LocationPermissionException();
       }
     } on LocationPermissionException {
@@ -95,35 +56,25 @@ class LocationService {
     }
   }
 
-  void getRealTimeLocationData(void Function(Position)? onData) async {
+  void getRealTimeLocationData(void Function(LocationData)? onData) async {
     try {
       await checkAndRequestLocationService();
       await checkAndRequestLocationPermission();
+      await _configureSettings(highAccuracy: true);
       await _locationSubscription?.cancel();
-      _locationSubscription = Geolocator.getPositionStream(
-        locationSettings: _locationSettings(highAccuracy: true),
-      ).listen(onData);
-    } on LocationServiceDisabledException {
-      throw LocationServiceException();
-    } on PermissionDeniedException {
-      throw LocationPermissionException();
+      _locationSubscription = _location.onLocationChanged.listen(onData);
     } on PlatformException catch (e) {
       debugPrint("Real-time location failed: ${e.message}");
       rethrow;
     }
   }
 
-  Future<Position> getLocation() async {
+  Future<LocationData> getLocation() async {
     try {
       await checkAndRequestLocationService();
       await checkAndRequestLocationPermission();
-      return await Geolocator.getCurrentPosition(
-        locationSettings: _locationSettings(highAccuracy: true),
-      );
-    } on LocationServiceDisabledException {
-      throw LocationServiceException();
-    } on PermissionDeniedException {
-      throw LocationPermissionException();
+      await _configureSettings(highAccuracy: true);
+      return await _location.getLocation();
     } on PlatformException catch (e) {
       debugPrint("Get location failed: ${e.message}");
       rethrow;
@@ -135,20 +86,15 @@ class LocationService {
     _locationSubscription = null;
   }
 
-  Future<StreamSubscription<Position>?> getLocationStream(
-      void Function(Position)? onData) async {
+  Future<StreamSubscription<LocationData>?> getLocationStream(
+      void Function(LocationData)? onData) async {
     try {
       await checkAndRequestLocationService();
       await checkAndRequestLocationPermission();
+      await _configureSettings(highAccuracy: true);
       await _locationSubscription?.cancel();
-      _locationSubscription = Geolocator.getPositionStream(
-        locationSettings: _locationSettings(highAccuracy: true),
-      ).listen(onData);
+      _locationSubscription = _location.onLocationChanged.listen(onData);
       return _locationSubscription;
-    } on LocationServiceDisabledException {
-      throw LocationServiceException();
-    } on PermissionDeniedException {
-      throw LocationPermissionException();
     } on PlatformException catch (e) {
       debugPrint("Get location stream failed: ${e.message}");
       rethrow;
@@ -217,9 +163,5 @@ class LocationService {
 class LocationServiceException implements Exception {}
 
 class LocationPermissionException implements Exception {}
-
-double degreesToRadians(double degrees) {
-  return degrees * pi / 180;
-}
 
 enum DistanceUnit { meters, kilometers, miles }
