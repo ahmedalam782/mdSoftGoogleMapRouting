@@ -55,6 +55,14 @@ class GoogleMapRepoImpl extends GoogleMapRepo {
         return Left(ServerFailure('Failed: ${response.statusMessage}'));
       }
 
+      // Google returns status 200 with an empty `routes` list (e.g. ZERO_RESULTS
+      // when no driving route exists between the points). Guard before indexing.
+      final routes = response.data['routes'];
+      if (routes is! List || routes.isEmpty) {
+        final status = response.data['status'] ?? 'NO_ROUTES';
+        return Left(ServerFailure('No route found ($status)'));
+      }
+
       // Decode polyline
       final encoded =
           response.data['routes'][0]['overview_polyline']['points'] as String;
